@@ -25,7 +25,7 @@ def login():
     if token:
         return redirect(url_for('index'))
     client_id = os.environ.get('OSU_CLIENT_ID')
-    return f'<a href="{OSU_AUTHORIZE_URL}?client_id={client_id}&redirect_uri={get_redirect()}&response_type=code&scope=public">Login</a>'
+    return f'<a href="{OSU_AUTHORIZE_URL}?client_id={client_id}&redirect_uri={get_redirect()}&response_type=code&scope=public">Login</a><br>This site lists your amount of unplayed maps. You need to be an osu!supporter to use it.'
 
 @app.route('/auth')
 def auth():
@@ -63,7 +63,7 @@ def index():
     user = osu_call('/me', token=token)
     is_supporter = user.get('is_supporter', False)
     if not is_supporter:
-        return 'You must be an osu! supporter to access this data'
+        return f'You must be an osu! supporter to access this data | <a href="{url_for("logout")}">Logout</a>'
     search_all = osu_call('/beatmapsets/search/', token=token, data={
         'm': 0,
     })
