@@ -49,6 +49,12 @@ def auth():
     result.set_cookie('token', token)
     return result
 
+@app.route('/logout')
+def logout():
+    result = redirect(url_for('login'))
+    result.set_cookie('token', '')
+    return result
+
 @app.route('/')
 def index():
     token = request.cookies.get('token')
@@ -58,16 +64,28 @@ def index():
     is_supporter = user.get('is_supporter', False)
     if not is_supporter:
         return 'You must be an osu! supporter to access this data'
-    result = osu_call('/beatmapsets/search/', token=token, data={
+    search_all = osu_call('/beatmapsets/search/', token=token, data={
+        'm': 0,
+    })
+    search_unplayed = osu_call('/beatmapsets/search/', token=token, data={
+        'm': 0,
         'played': 'unplayed'
     })
-    with open(f'{user.get("username")}.json', 'w') as f:
+    username = user.get("username")
+    with open(f'{username}.json', 'w') as f:
         import json
-        json.dump(result, f, indent=2)
-    maps = '<br>'.join(
-        [
-            f'<a href="https://osu.ppy.sh/beatmapsets/{x["id"]}">{x["artist"]} - {x["title"]} (mapped by {x["creator"]})</a>'
-            for x in result.get('beatmapsets', [])
-        ]
+        json.dump(search_unplayed, f, indent=2)
+    maps = '<table>{}</table>'.format(
+        ''.join([
+            f'<tr><td><a href="https://osu.ppy.sh/beatmapsets/{x["id"]}">{x["artist"]} - {x["title"]} (mapped by {x["creator"]})</a></td><td><a href="osu://s/{x["id"]}">osu!direct</a></td></tr>'
+            for x in search_unplayed.get('beatmapsets', [])
+        ])
     )
-    return f'Unplayed mapsets: {result.get("total")}' + '<br>Some maps:<br>' + maps
+    return f'''
+        <!doctype html>
+        <title>osu! completionist by Tina</title>
+        Logged in as {username} | <a href="{url_for('logout')}">Logout</a><br>
+        Unplayed mapsets: {search_unplayed.get("total")} / {search_all.get("total")}<br>
+        Some unplayed maps:<br>
+        {maps}
+    '''
