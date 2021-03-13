@@ -66,9 +66,11 @@ def index():
         return f'You must be an osu! supporter to access this data | <a href="{url_for("logout")}">Logout</a>'
     search_all = osu_call('/beatmapsets/search/', token=token, data={
         'm': 0,
+        'nsfw': True,
     })
     search_unplayed = osu_call('/beatmapsets/search/', token=token, data={
         'm': 0,
+        'nsfw': True,
         'played': 'unplayed'
     })
     username = user.get("username")
