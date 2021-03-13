@@ -1,3 +1,4 @@
+import logging
 import os
 from flask import url_for, redirect, request
 import requests
@@ -8,6 +9,8 @@ OSU_GET_TOKEN_URL = 'https://osu.ppy.sh/oauth/token'
 OSU_AUTHORIZE_URL = 'https://osu.ppy.sh/oauth/authorize'
 OSU_API_URL = 'https://osu.ppy.sh/api/v2'
 
+def get_redirect():
+    return url_for("auth", _external=True, _scheme='https' if request.headers.get('X-Forwarded-Proto') == 'https' else 'http')
 
 def osu_call(url, token, data=None, method='GET'):
     if url.startswith('/'):
@@ -22,7 +25,7 @@ def login():
     if token:
         return redirect(url_for('index'))
     client_id = os.environ.get('OSU_CLIENT_ID')
-    return f'<a href="{OSU_AUTHORIZE_URL}?client_id={client_id}&redirect_uri={url_for("auth", _external=True)}&response_type=code&scope=public">Login</a>'
+    return f'<a href="{OSU_AUTHORIZE_URL}?client_id={client_id}&redirect_uri={get_redirect()}&response_type=code&scope=public">Login</a>'
 
 @app.route('/auth')
 def auth():
@@ -35,10 +38,12 @@ def auth():
             client_secret=client_secret,
             code=request.args.get('code'),
             grant_type='authorization_code',
-            redirect_uri=url_for('auth', _external=True),
+            redirect_uri=get_redirect(),
         )
     )
-    print(resp)
+    if not resp.ok:
+        logging.error(f'{resp} {resp.json()}')
+        return 'An error occured during auth', 500
     token = resp.json().get('access_token')
     result = redirect(url_for('index'))
     result.set_cookie('token', token)
